@@ -1,0 +1,15 @@
+{
+  "summary": "Hedge Engine v0.2 schema/config/spec in progress; venues/guardrails from Dev-007 locked; sizing-sim seeds drafting.",
+  "next_steps": [
+    "Update hedge-config.schema.json with venues, guardrails, RWA/stable-arb fields",
+    "Add sample configs for Lane A (stable-arb) and Lane B (RWA)",
+    "Seed sizing-sim tests for Calm, Stressed, Depeg_1pct scenarios"
+  ],
+  "asks": [
+    "Confirm instrument priority for Lane A if GMX v2 vs Vertex funding diverges",
+    "Suggest extra depeg scenarios for sizing-sim"
+  ],
+  "eta": "36h",
+  "owners": ["Dev-006","Dev-007"],
+  "prod_flags": false
+}
