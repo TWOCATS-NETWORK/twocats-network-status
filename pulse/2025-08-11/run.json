@@ -1,1 +1,103 @@
-[]
+[
+  {
+    "component": "People",
+    "task": "team-intros",
+    "status": "info",
+    "owner": "TWOCATS-network",
+    "repo": "twocats-network-status",
+    "workflow": "manual",
+    "run_id": "0",
+    "commit_sha": "",
+    "created_at": "2025-08-11T17:36:06Z",
+    "annotations": {
+      "note": "Genesis core team & lanes",
+      "team": [
+        {
+          "id": "DEV-002",
+          "github_handle": "<unknown>",
+          "role": "Protocol Engineer / Merge Ops",
+          "focus": "Conflict resolution, merge hygiene",
+          "north_star": "No stalled PRs; mainline stable",
+          "threads": [
+            "Merge Ops"
+          ]
+        },
+        {
+          "id": "DEV-003",
+          "github_handle": "<unknown>",
+          "role": "Protocol Developer",
+          "focus": "Core contracts, integrations",
+          "north_star": "Secure, efficient, extensible",
+          "threads": [
+            "Protocol Dev",
+            "CI Alignment"
+          ]
+        },
+        {
+          "id": "DEV-004",
+          "github_handle": "<unknown>",
+          "role": "Research & Pulse Infra",
+          "focus": "Pulse feed + research index",
+          "north_star": "Accurate, up-to-date signals",
+          "threads": [
+            "PulseBridge",
+            "Research Index"
+          ]
+        },
+        {
+          "id": "DEV-005",
+          "github_handle": "<unknown>",
+          "role": "Senior Product / PM",
+          "focus": "Product alignment, Protocol Pack",
+          "north_star": "Specs tight, PRs clean, smooth launch",
+          "threads": [
+            "Mission Control"
+          ]
+        },
+        {
+          "id": "DEV-006",
+          "github_handle": "<unknown>",
+          "role": "Yield Strategy Architect",
+          "focus": "ERC-4626, LP mechanics, stablecoin arb",
+          "north_star": "Green on demand; red actionable",
+          "threads": [
+            "CI Strike Team — Green Gate",
+            "Strategy Dev"
+          ]
+        },
+        {
+          "id": "DEV-007",
+          "github_handle": "<unknown>",
+          "role": "Cross-Chain & RWA Integrator",
+          "focus": "Multi-chain strategies, RWA vaults, NFT gating",
+          "north_star": "Machine-readable Pulse on Pages",
+          "threads": [
+            "Mission Control — PulseBridge",
+            "RWA/Yield Strategy Dev"
+          ]
+        }
+      ],
+      "access": {
+        "team_name": "protocol-devs",
+        "permission": "write",
+        "repos": [
+          "GPDIndex0Bootloader-dev-auth",
+          "twocats-network-status"
+        ]
+      },
+      "rules": {
+        "branch_patterns": [
+          "feat/<slug>",
+          "codex/<slug>"
+        ],
+        "bypass_label": "allow-legacy-branch",
+        "ci_requirements": [
+          "Sentinel v2",
+          "B1/C1 targeted tests"
+        ],
+        "sentinel_version": "v2"
+      }
+    },
+    "footer_token": "[[GENESIS_STATUS component=\"People\" task=\"team-intros\"]]"
+  }
+]
