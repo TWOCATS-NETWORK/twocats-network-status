@@ -11,13 +11,18 @@ on:
       run_id: {required: false, type: string, default: "0"}
       commit_sha: {required: false, type: string, default: ""}
       annotations_json: {required: false, type: string, default: "{}"}
-permissions: {contents: write}
+permissions:
+  contents: write
 jobs:
   append:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with: { ref: gh-pages, fetch-depth: 0, path: pages, token: ${{ secrets.GH_PAGES_TOKEN }} }
+        with:
+          ref: gh-pages
+          fetch-depth: 0
+          path: pages
+          token: ${{ secrets.GH_PAGES_TOKEN }}
       - name: Set UTC
         id: dt
         run: |
