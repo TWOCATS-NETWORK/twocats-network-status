@@ -1,0 +1,51 @@
+name: Pulse — Hedge Consume (Manual)
+on:
+  workflow_dispatch:
+    inputs:
+      lane:        { description: "A or B", required: true, default: "A" }
+      results_url: { description: "Public JSON URL (optional)", required: false }
+      inline_json: { description: "Paste results JSON (optional)", required: false }
+      env_target:  { description: "dev|staging|prod", required: true, default: "staging" }
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: gh-pages, fetch-depth: 0, path: pages }
+      - name: Resolve payload
+        id: payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "${{ inputs.results_url }}" ]; then
+            curl -fsSL "${{ inputs.results_url }}" -o results.json
+          elif [ -n "${{ inputs.inline_json }}" ]; then
+            echo '${{ inputs.inline_json }}' > results.json
+          else
+            echo "Provide results_url or inline_json"; exit 1
+          fi
+          jq -e '.lane and .timestamp and .risk_state and .metrics and .scenarios' results.json >/dev/null
+          echo "lane=$(jq -r '.lane' results.json)" >> $GITHUB_OUTPUT
+      - name: Transform & publish
+        shell: bash
+        run: |
+          LANE="${{ steps.payload.outputs.lane }}"; ENV="${{ inputs.env_target }}"
+          mkdir -p pages/pulse/data/hedge
+          case "$LANE" in A|a) OUT="pages/pulse/data/hedge/laneA/latest.json";; B|b) OUT="pages/pulse/data/hedge/laneB/latest.json";; *) echo "Lane must be A or B"; exit 1;; esac
+          # transform: risk_state -> readiness; keep metrics/scenarios, add provenance if missing
+          jq '{version:"1.0", lane:.lane, timestamp:.timestamp,
+               readiness:(.risk_state|ascii_downcase), metrics:.metrics,
+               scenarios:.scenarios, thresholds:(.thresholds // {}),
+               provenance:(.provenance // {}) }' results.json > "$OUT"
+          # ensure env latest pointer exists & add hedge annotation
+          DATE=$(date -u +%F); mkdir -p "pages/pulse/$ENV/$DATE"
+          test -f "pages/pulse/$ENV/latest.json" || printf '{"date":"%s","path":"pulse/%s/%s/run.json","last_updated":null,"last_event":null,"annotations":{}}\n' "$DATE" "$ENV" "$DATE" > "pages/pulse/$ENV/latest.json"
+          jq --arg lane "$LANE" --arg path "${OUT#pages/}" '
+            .annotations.hedge = (.annotations.hedge // {}) |
+            .annotations.hedge[$lane] = $path |
+            .last_updated = (now | todate)
+          ' "pages/pulse/$ENV/latest.json" > t && mv t "pages/pulse/$ENV/latest.json"
+          cd pages && git config user.name "github-actions[bot]" && git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pulse && git commit -m "Hedge consume ($LANE)" || true && git push origin gh-pages
