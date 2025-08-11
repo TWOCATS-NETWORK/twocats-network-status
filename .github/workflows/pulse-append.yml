@@ -1,0 +1,69 @@
+name: Pulse Append
+on:
+  workflow_dispatch:
+    inputs:
+      component: {required: true, type: string}
+      task: {required: true, type: string}
+      status: {required: true, type: string}
+      owner: {required: false, type: string, default: "twocats-network"}
+      repo:  {required: false, type: string, default: "twocats-network-status"}
+      workflow: {required: false, type: string, default: "manual"}
+      run_id: {required: false, type: string, default: "0"}
+      commit_sha: {required: false, type: string, default: ""}
+      annotations_json: {required: false, type: string, default: "{}"}
+permissions: {contents: write}
+jobs:
+  append:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: gh-pages, fetch-depth: 0, path: pages, token: ${{ secrets.GH_PAGES_TOKEN }} }
+      - name: Set UTC
+        id: dt
+        run: |
+          echo "DATE=$(date -u +%F)" >> $GITHUB_OUTPUT
+          echo "NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_OUTPUT
+      - name: Ensure structure
+        run: |
+          mkdir -p pages/pulse/${{ steps.dt.outputs.DATE }}
+          [ -f pages/pulse/${{ steps.dt.outputs.DATE }}/run.json ] || echo "[]" > pages/pulse/${{ steps.dt.outputs.DATE }}/run.json
+      - name: Append event
+        run: |
+          tmp=$(mktemp)
+          jq --arg comp "${{ inputs.component }}" \
+             --arg task "${{ inputs.task }}" \
+             --arg status "${{ inputs.status }}" \
+             --arg owner "${{ inputs.owner }}" \
+             --arg repo  "${{ inputs.repo }}" \
+             --arg workflow "${{ inputs.workflow }}" \
+             --arg run_id "${{ inputs.run_id }}" \
+             --arg sha "${{ inputs.commit_sha }}" \
+             --arg now "${{ steps.dt.outputs.NOW }}" \
+             --argjson ann "${{ inputs.annotations_json }}" \
+             --arg footer "[[GENESIS_STATUS component=\"${{ inputs.component }}\" task=\"${{ inputs.task }}\"]]" \
+             '. + [{
+               component:$comp, task:$task, status:$status,
+               owner:$owner, repo:$repo, workflow:$workflow, run_id:$run_id, commit_sha:$sha,
+               created_at:$now, annotations:$ann, footer_token:$footer
+             }]' \
+             pages/pulse/${{ steps.dt.outputs.DATE }}/run.json > "$tmp"
+          mv "$tmp" pages/pulse/${{ steps.dt.outputs.DATE }}/run.json
+      - name: Update latest
+        run: |
+          jq -n --arg d "${{ steps.dt.outputs.DATE }}" \
+                --arg p "pulse/${{ steps.dt.outputs.DATE }}/run.json" \
+                --arg now "${{ steps.dt.outputs.NOW }}" \
+                --arg last "${{ inputs.component }}/${{ inputs.task }}" \
+                '{date:$d, path:$p, last_updated:$now, last_event:$last}' > pages/pulse/latest.json
+      - name: Commit & push
+        working-directory: pages
+        run: |
+          git config user.name "pulse-bot"
+          git config user.email "pulse-bot@users.noreply.github.com"
+          git add pulse
+          git commit -m "Pulse append: ${{ inputs.component }}/${{ inputs.task }} @ ${{ steps.dt.outputs.NOW }}" || echo "No changes"
+          git push origin gh-pages
+      - name: Echo URLs
+        run: |
+          echo "https://twocats-network.github.io/twocats-network-status/pulse/latest.json"
+          echo "https://twocats-network.github.io/twocats-network-status/pulse/${{ steps.dt.outputs.DATE }}/run.json"
