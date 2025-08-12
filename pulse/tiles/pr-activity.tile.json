@@ -1,0 +1,7 @@
+{
+  "title": "PR Activity (last 10)",
+  "source": "pulse/api/events/latest.json",
+  "filter": {"component": "PR"},
+  "limit": 10,
+  "fields": ["timestamp","owner","status","summary","pr_number","pr_url"]
+}

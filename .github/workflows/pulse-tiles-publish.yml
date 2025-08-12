@@ -1,0 +1,36 @@
+name: Pulse — Tiles Publish
+on:
+  workflow_dispatch:
+    inputs:
+      env_target: { description: "dev|staging|prod", required: true, default: "staging" }
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: gh-pages, fetch-depth: 0, path: pages }
+      - name: Sync tile specs to Pages
+        run: |
+          set -euo pipefail
+          mkdir -p pages/pulse/tiles pages/pulse/tiles/hedge
+          cp -a pulse/tiles/*.json pages/pulse/tiles/ || true
+          cp -a pulse/tiles/hedge/*.json pages/pulse/tiles/hedge/ || true
+          # ensure env latest pointer exists
+          ENV="${{ inputs.env_target }}"; DATE=$(date -u +%F)
+          mkdir -p "pages/pulse/$ENV/$DATE"
+          ENV_LATEST="pages/pulse/$ENV/latest.json"
+          if [[ ! -f "$ENV_LATEST" ]]; then
+            printf '{"date":"%s","path":"pulse/%s/%s/run.json","last_updated":null,"last_event":null,"annotations":{}}\n' "$DATE" "$ENV" "$DATE" > "$ENV_LATEST"
+          fi
+          # attach tiles index pointer for convenience
+          jq --arg p "pulse/tiles/index.json" '.annotations.tiles_index = $p | .last_updated = (now | todate)' "$ENV_LATEST" > t && mv t "$ENV_LATEST"
+      - name: Commit & push
+        run: |
+          cd pages
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pulse
+          git commit -m "Publish tiles & index" || true
+          git push origin gh-pages

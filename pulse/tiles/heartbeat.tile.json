@@ -1,0 +1,7 @@
+{
+  "title": "Feed Heartbeat",
+  "env": "staging",
+  "source": "pulse/staging/latest.json",
+  "fields": ["last_updated","last_event.component","last_event.task","last_event.status"],
+  "notes": "Auto-updates when any event is appended"
+}

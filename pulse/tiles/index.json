@@ -1,0 +1,10 @@
+{
+  "version": "1.0",
+  "env_default": "staging",
+  "tiles": [
+    {"id":"heartbeat","path":"pulse/tiles/heartbeat.tile.json"},
+    {"id":"hedge_laneA","path":"pulse/tiles/hedge/laneA.tile.json"},
+    {"id":"hedge_laneB","path":"pulse/tiles/hedge/laneB.tile.json"},
+    {"id":"pr_activity","path":"pulse/tiles/pr-activity.tile.json"}
+  ]
+}
