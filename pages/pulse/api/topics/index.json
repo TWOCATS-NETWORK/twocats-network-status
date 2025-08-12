@@ -1,0 +1,11 @@
+{
+  "topics": [
+    {"id":"SYS.coord","owners":["coord-001"],"visibility":"internal"},
+    {"id":"OPS.hotlane","owners":["coord-001"],"visibility":"internal"},
+    {"id":"PRD.auth.v1","owners":["dev-005"],"visibility":"internal"},
+    {"id":"MVP-A.auth","owners":["dev-006"],"visibility":"internal"},
+    {"id":"MVP-B.auth","owners":["dev-007"],"visibility":"internal"},
+    {"id":"BENCH.auth","owners":["dev-009"],"visibility":"internal"}
+  ],
+  "updated": "2025-08-12T16:36:07Z"
+}
