@@ -1,0 +1,12 @@
+{
+  "date": "2025-08-11",
+  "path": "pulse/2025-08-11/run.json",
+  "last_updated": "2025-08-11T17:44:11Z",
+  "last_event": "People/team-update",
+  "annotations": {
+    "hedge": {
+      "laneA": "pulse/tiles/hedge/laneA.tile.json",
+      "laneB": "pulse/tiles/hedge/laneB.tile.json"
+    }
+  }
+}

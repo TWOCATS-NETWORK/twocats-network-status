@@ -1,0 +1,6 @@
+{
+  "hedge": {
+    "laneA": "hedge/laneA.tile.json",
+    "laneB": "hedge/laneB.tile.json"
+  }
+}
