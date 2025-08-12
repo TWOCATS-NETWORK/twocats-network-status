@@ -1,0 +1,42 @@
+name: Pulse — Probe & Report
+on: { workflow_dispatch: { inputs: { env_target: {description: "dev|staging|prod", required: true, default: "staging"} } } }
+permissions: { contents: write }
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+        with: { ref: gh-pages, fetch-depth: 0, path: pages }
+      - name: Collect HEAD info
+        id: head
+        run: |
+          cd pages
+          echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "when=$(date -u +%FT%TZ)"       >> $GITHUB_OUTPUT
+      - name: Hit endpoints
+        env:
+          BASE: https://twocats-network.github.io/twocats-network-status
+          ENV:  ${{ inputs.env_target }}
+        run: |
+          set -e
+          probe() { URL="$1"; CODE=$(curl -s -o /dev/null -w "%{http_code}" "$URL") || true; echo "{\"url\":\"$URL\",\"code\":$CODE}"; }
+          {
+            probe "$BASE/pulse/$ENV/latest.json"
+            probe "$BASE/pulse/api/events/latest.json"
+            probe "$BASE/pulse/data/hedge/laneA/latest.json"
+            probe "$BASE/pulse/data/hedge/laneB/latest.json"
+            probe "$BASE/pulse/tiles/index.json"
+          } | jq -s '.' > report.json
+      - name: Publish report to Pages
+        run: |
+          mkdir -p pages/pulse/reports
+          TS=$(date -u +%Y%m%dT%H%M%SZ)
+          OUT="pages/pulse/reports/status-$TS.json"
+          jq --arg sha "${{ steps.head.outputs.sha }}" --arg ts "${{ steps.head.outputs.when }}" \
+             '. | {generated_at:$ts, gh_pages_head:$sha, probes:.}' report.json > "$OUT"
+          cd pages
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pulse/reports && git commit -m "probe: $TS" || true
+          git push origin gh-pages
