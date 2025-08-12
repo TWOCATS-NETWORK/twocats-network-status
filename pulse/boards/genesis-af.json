@@ -1,0 +1,35 @@
+{
+  "board_name": "Genesis A–F",
+  "generated_at": "2025-08-12T15:07:45Z",
+  "tiles": [
+    {
+      "pulse_tile_id": "D3-ILP-ARB-001",
+      "prj_code": "ILP-ARB-001",
+      "board_slot": "D3",
+      "title": "Stablecoin ILPs with Peg-Deviation Arbitrage",
+      "owners": ["Dev-008","Dev-007","Dev-009"],
+      "repo": "TWOCATS-NETWORK/GPDIndex0Bootloader-dev-auth",
+      "status": "DESIGN_IN_PROGRESS",
+      "dependencies": ["Router-Genesis-Integration","CI-Stability"],
+      "links": {
+        "prd_doc": "<<<LINK_TO_PRD_OR_DOC>>>",
+        "specs": ["ILPPool","GenesisRouter","FeeStreamer"]
+      },
+      "metrics_keys": ["gas_cost_usd","trading_fees_bps","failure_penalty_bps","expected_pnl_usd","quotes","reserves_snapshot","decision","execution_outcome"]
+    },
+    {
+      "pulse_tile_id": "E2-Hedging-PRD",
+      "prj_code": "HEDGE-CORE-001",
+      "board_slot": "E2",
+      "title": "Hedging & Cross-Asset Risk Mitigation PRD",
+      "owners": ["Dev-007"],
+      "repo": "TWOCATS-NETWORK/GPDIndex0Bootloader-dev-auth",
+      "status": "DRAFT",
+      "dependencies": ["D3-ILP-ARB-001"],
+      "links": {
+        "prd_doc": "<<<LINK_TO_HEDGING_PRD>>>"
+      },
+      "metrics_keys": ["hedge_band_hi_pct","hedge_band_lo_pct","hedge_latency_ms","hedge_slip_bps","pnl_realized_usd"]
+    }
+  ]
+}
