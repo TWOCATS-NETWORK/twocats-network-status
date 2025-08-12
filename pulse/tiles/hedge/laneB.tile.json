@@ -1,15 +1,5 @@
 {
-  "version": "1.0",
-  "lane": "B",
-  "readiness": "unknown",
-  "metrics": {
-    "max_notional": null,
-    "var_24h_bps": null,
-    "slippage_at_size_bps": null
-  },
-  "last_updated": null,
-  "notes": {
-    "triggers": [],
-    "actions": []
-  }
+  "title": "Hedge — Lane B",
+  "source": "pulse/data/hedge/laneB/latest.json",
+  "fields": ["readiness","metrics.max_notional","metrics.var_24h_bps","metrics.slippage_at_size_bps","timestamp"]
 }
