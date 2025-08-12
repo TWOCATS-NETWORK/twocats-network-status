@@ -1,0 +1,26 @@
+{
+  "generated_at": "2025-08-12T08:06:27Z",
+  "gh_pages_head": "bed69d7",
+  "probes": [
+    {
+      "url": "https://twocats-network.github.io/twocats-network-status/pulse/PULSE/latest.json",
+      "code": 404
+    },
+    {
+      "url": "https://twocats-network.github.io/twocats-network-status/pulse/api/events/latest.json",
+      "code": 404
+    },
+    {
+      "url": "https://twocats-network.github.io/twocats-network-status/pulse/data/hedge/laneA/latest.json",
+      "code": 404
+    },
+    {
+      "url": "https://twocats-network.github.io/twocats-network-status/pulse/data/hedge/laneB/latest.json",
+      "code": 404
+    },
+    {
+      "url": "https://twocats-network.github.io/twocats-network-status/pulse/tiles/index.json",
+      "code": 404
+    }
+  ]
+}
