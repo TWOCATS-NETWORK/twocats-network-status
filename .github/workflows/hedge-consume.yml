@@ -1,18 +1,21 @@
-name: Hedge Consume
+name: Pulse — Hedge Consume
+
 on:
-  repository_dispatch:
-    types: [hedge-results]
   workflow_dispatch:
     inputs:
-      lane_id: { required: false, type: string, default: "laneA-stable-arb" }
-      status:  { required: false, type: string, default: "yellow" }
-      results_json: { required: false, type: string, default: "" } # optional manual payload
+      lane:        { description: "A or B", required: true, default: "A" }
+      results_url: { description: "Public JSON URL (optional)", required: false }
+      inline_json: { description: "Paste results JSON (optional)", required: false }
+      env_target:  { description: "dev|staging|prod", required: true, default: "staging" }
+  repository_dispatch:
+    types: [hedge-results]
 
 permissions:
   contents: write
 
 jobs:
-  consume:
+  publish:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout gh-pages
@@ -23,73 +26,66 @@ jobs:
           path: pages
           token: ${{ secrets.GH_PAGES_TOKEN }}
 
-      - name: Resolve payload (dispatch vs manual)
-        id: p
+      - name: Resolve payload
+        id: payload
         shell: bash
         run: |
-          echo "DATE=$(date -u +%F)" >> $GITHUB_OUTPUT
-          echo "NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_OUTPUT
-          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
-            payload='${{ toJson(github.event.client_payload) }}'
-            echo "$payload" > /tmp/p.json
-          else
-            jq -n --arg lane "${{ inputs.lane_id }}" \
-                  --arg status "${{ inputs.status }}" \
-                  --arg now "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-                  --argjson metrics '{}' \
-                  --argjson thresholds '{}' \
-                  --argjson annotations '{}' \
-                  --arg footer "[[GENESIS_STATUS component=\"Hedge\" task=\"manual\"]]" \
-                  '{lane_id:$lane,status:$status,last_run_at:$now,metrics:$metrics,thresholds:$thresholds,annotations:$annotations,footer_token:$footer}' > /tmp/p.json
-            if [ -n "${{ inputs.results_json }}" ]; then
-              printf '%s' "${{ inputs.results_json }}" > /tmp/p.json
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "repository_dispatch" ]]; then
+            echo '${{ toJson(github.event.client_payload) }}' > ev.json
+            curl -fsSL "$(jq -r '.results_url // empty' ev.json)" -o results.json
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            if [ -n "${{ inputs.results_url }}" ]; then
+              curl -fsSL "${{ inputs.results_url }}" -o results.json
+            elif [ -n "${{ inputs.inline_json }}" ]; then
+              echo '${{ inputs.inline_json }}' > results.json
+            else
+              echo "Provide results_url or inline_json"; exit 1
             fi
           fi
-          echo "LANE_ID=$(jq -r .lane_id /tmp/p.json)" >> $GITHUB_OUTPUT
-          echo "STATUS=$(jq -r .status /tmp/p.json)"   >> $GITHUB_OUTPUT
+          jq -e '.lane and .timestamp and .risk_state and .metrics and .scenarios' results.json >/dev/null
+          echo "lane=$(jq -r '.lane' results.json)" >> $GITHUB_OUTPUT
 
-      - name: Ensure folders
+      - name: Transform to Pulse JSON
         run: |
-          mkdir -p pages/pulse/${{ steps.p.outputs.DATE }}
-          mkdir -p pages/pulse/results
+          jq '{version:"1.0", lane, timestamp, readiness:(.risk_state | ascii_downcase),
+               metrics, scenarios, thresholds:(.thresholds // {}), provenance:(.provenance // {}),
+               notes:{triggers:(.triggers // []), actions:(.actions // [])}}' results.json > pulse.json
 
-      - name: Write lane results + update latest.json
+      - name: Publish lane data
         run: |
-          lane="${{ steps.p.outputs.LANE_ID }}"
-          out="pages/pulse/results/${lane}.json"
-          jq '.' /tmp/p.json > "$out"
-          jq -n --arg date "${{ steps.p.outputs.DATE }}" \
-                --arg path "pulse/${{ steps.p.outputs.DATE }}/run.json" \
-                --arg now "${{ steps.p.outputs.NOW }}" \
-                --arg last "Hedge/${lane}" \
-                '{date:$date, path:$path, last_updated:$now, last_event:$last}' > pages/pulse/latest.json
+          lane=${{ steps.payload.outputs.lane }}
+          env=${{ inputs.env_target }}
+          case "$lane" in
+            A|a) lane_path="laneA";;
+            B|b) lane_path="laneB";;
+            *) echo "Lane must be A or B"; exit 1;;
+          esac
+          mkdir -p pages/pulse/data/hedge/${lane_path}
+          cp pulse.json pages/pulse/data/hedge/${lane_path}/latest.json
 
-      - name: Append event to today's run.json
+      - name: Update environment annotations
         run: |
-          file="pages/pulse/${{ steps.p.outputs.DATE }}/run.json"
-          [ -f "$file" ] || echo "[]" > "$file"
-          tmp=$(mktemp)
-          jq --arg comp "Hedge" \
-             --arg task "${{ steps.p.outputs.LANE_ID }}" \
-             --arg status "${{ steps.p.outputs.STATUS }}" \
-             --arg now "${{ steps.p.outputs.NOW }}" \
-             --arg footer "[[GENESIS_STATUS component=\"Hedge\" task=\"${{ steps.p.outputs.LANE_ID }}\"]]" \
-             --slurpfile evt /tmp/p.json \
-             '. + [ $evt[0] + {component:$comp, task:$task, status:$status, created_at:$now, footer_token:$footer} ]' \
-             "$file" > "$tmp"
-          mv "$tmp" "$file"
+          env=${{ inputs.env_target }}
+          lane=${{ steps.payload.outputs.lane }}
+          case "$lane" in
+            A|a) lane_path="laneA";;
+            B|b) lane_path="laneB";;
+          esac
+          file="pages/pulse/${env}/latest.json"
+          if [ ! -f "$file" ]; then
+            mkdir -p "$(dirname "$file")"
+            printf '{"date":"%s","path":"pulse/%s/%s/run.json","last_updated":null,"last_event":null,"annotations":{"hedge":{}}}\n' "$(date -u +%F)" "$env" "$(date -u +%F)" > "$file"
+          fi
+          jq --arg lane "$lane" --arg path "pulse/data/hedge/${lane_path}/latest.json" \
+             '.annotations.hedge[$lane] = $path | .last_updated = (now | todateiso8601)' "$file" > "$file.tmp"
+          mv "$file.tmp" "$file"
 
-      - name: Commit & push
-        working-directory: pages
+      - name: Commit and push
         run: |
-          git config user.name "pulse-bot"
-          git config user.email "pulse-bot@users.noreply.github.com"
-          git add pulse
-          git commit -m "Hedge consume: ${{ steps.p.outputs.LANE_ID }} @ ${{ steps.p.outputs.NOW }}" || echo "No changes"
+          cd pages
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add pulse/data/hedge pulse/${{ inputs.env_target }}/latest.json
+          git commit -m "Hedge consume (${{ steps.payload.outputs.lane }}) @ ${{ inputs.env_target }}" || echo "No changes to commit"
           git push origin gh-pages
-
-      - name: Echo URLs
-        run: |
-          echo "LATEST: https://twocats-network.github.io/twocats-network-status/pulse/latest.json"
-          echo "LANE:   https://twocats-network.github.io/twocats-network-status/pulse/results/${{ steps.p.outputs.LANE_ID }}.json"
-          echo "RUN:    https://twocats-network.github.io/twocats-network-status/pulse/${{ steps.p.outputs.DATE }}/run.json"

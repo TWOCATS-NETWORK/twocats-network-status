@@ -1,0 +1,13 @@
+name: Pulse — Verify Pages
+on: { workflow_dispatch: {} }
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check core endpoints
+        env: { BASE: https://twocats-network.github.io/twocats-network-status }
+        run: |
+          set -e
+          curl -fsSL "$BASE/pulse/api/events/latest.json" || echo "OK empty (will fill on first PR event)"
+          # if using staging/prod envs, uncomment after first write:
+          # curl -fsSL "$BASE/pulse/staging/latest.json" | jq '.last_updated' || true
